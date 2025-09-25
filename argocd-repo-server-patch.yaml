@@ -7,13 +7,12 @@ spec:
   template:
     spec:
       containers:
-        - name: cmp-helmfile
+        - name: cmp
           securityContext:
             runAsNonRoot: true
             runAsUser: 999
-          image: ghcr.io/helmfile/helmfile:v0.157.0
+          image: quay.io/christianh814/helmfile:v0.155.1
           imagePullPolicy: IfNotPresent
-# Entrypoint should be Argo CD lightweight CMP server i.e. argocd-cmp-server
           command: [/var/run/argocd/argocd-cmp-server]
           volumeMounts:
             - mountPath: /var/run/argocd
