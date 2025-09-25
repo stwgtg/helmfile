@@ -12,7 +12,7 @@ data:
     spec:
       version: v1.0
       init:
-        command: [sh, -c, 'echo "Initializing..."']
+        command: [sh, -c, ' echo "Initializing..."']
       generate:
         command: [sh, -c]
         args: ["helmfile template --quiet --namespace $ARGOCD_APP_NAMESPACE"]
