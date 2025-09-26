@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-helmfiles-app
+  name: logging-setup-app
   namespace: argocd
 spec:
   project: default
@@ -9,10 +9,10 @@ spec:
 #mention your own repo which include the helmfile.yaml and define the path
     repoURL: https://github.com/stwgtg/helmfile.git
     targetRevision: HEAD
-    path: my-helmfiles-app
+    path: logging-setup
   destination:
     server: https://kubernetes.default.svc
-    namespace: my-helmfiles-app
+    namespace: logging
   syncPolicy:
     automated:
       prune: true

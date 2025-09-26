@@ -1,0 +1,788 @@
+# Default values for fluent-bit.
+# kind -- DaemonSet or Deployment
+kind: DaemonSet
+# replicaCount -- Only applicable if kind=Deployment
+replicaCount: 1
+
+image:
+  repository: cr.fluentbit.io/fluent/fluent-bit
+  # Overrides the image tag whose default is {{ .Chart.AppVersion }}
+  # Set to "-" to not use the default value
+  tag:
+  digest:
+  pullPolicy: IfNotPresent
+
+testFramework:
+  enabled: true
+  namespace: 
+  image:
+    repository: busybox
+    pullPolicy: Always
+    tag: latest
+    digest:
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name:
+  automountServiceAccountToken:
+
+rbac:
+  create: true
+  nodeAccess: false
+  eventsAccess: false
+
+# Configure podsecuritypolicy
+# Ref: https://kubernetes.io/docs/concepts/policy/pod-security-policy/
+# from Kubernetes 1.25, PSP is deprecated
+# See: https://kubernetes.io/blog/2022/08/23/kubernetes-v1-25-release/#pod-security-changes
+# We automatically disable PSP if Kubernetes version is 1.25 or higher
+podSecurityPolicy:
+  create: false
+  annotations: {}
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    # This policy assumes the nodes are using AppArmor rather than SELinux.
+    rule: RunAsAny
+
+# OpenShift-specific configuration
+openShift:
+  enabled: false
+  securityContextConstraints:
+    # Create SCC for Fluent-bit and allow use it
+    create: true
+    name: ""
+    annotations: {}
+    runAsUser:
+      type: RunAsAny
+    seLinuxContext:
+      type: MustRunAs
+    # Use existing SCC in cluster, rather then create new one
+    existingName: ""
+
+podSecurityContext: {}
+#   fsGroup: 2000
+
+hostNetwork: false
+dnsPolicy: ClusterFirst
+
+dnsConfig: {}
+#   nameservers:
+#     - 1.2.3.4
+#   searches:
+#     - ns1.svc.cluster-domain.example
+#     - my.dns.search.suffix
+#   options:
+#     - name: ndots
+#       value: "2"
+#     - name: edns0
+
+hostAliases: []
+#   - ip: "1.2.3.4"
+#     hostnames:
+#     - "foo.local"
+#     - "bar.local"
+
+securityContext: {}
+#   capabilities:
+#     drop:
+#     - ALL
+#   readOnlyRootFilesystem: true
+#   runAsNonRoot: true
+#   runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 2020
+  internalTrafficPolicy:
+  loadBalancerClass:
+  loadBalancerSourceRanges: []
+  loadBalancerIP:
+  labels: {}
+  # nodePort: 30020
+  # clusterIP: 172.16.10.1
+  annotations: {}
+  #   prometheus.io/path: "/api/v1/metrics/prometheus"
+  #   prometheus.io/port: "2020"
+  #   prometheus.io/scrape: "true"
+  externalIPs: []
+  # externalIPs:
+  #  - 2.2.2.2
+
+serviceMonitor:
+  enabled: false
+  #   namespace: monitoring
+  #   interval: 10s
+  #   scrapeTimeout: 10s
+  #   selector:
+  #    prometheus: my-prometheus
+  #  ## metric relabel configs to apply to samples before ingestion.
+  #  ##
+  #  metricRelabelings:
+  #    - sourceLabels: [__meta_kubernetes_service_label_cluster]
+  #      targetLabel: cluster
+  #      regex: (.*)
+  #      replacement: ${1}
+  #      action: replace
+  #  ## relabel configs to apply to samples after ingestion.
+  #  ##
+  #  relabelings:
+  #    - sourceLabels: [__meta_kubernetes_pod_node_name]
+  #      separator: ;
+  #      regex: ^(.*)$
+  #      targetLabel: nodename
+  #      replacement: $1
+  #      action: replace
+  #  scheme: ""
+  #  tlsConfig: {}
+
+  ## Bear in mind if you want to collect metrics from a different port
+  ## you will need to configure the new ports on the extraPorts property.
+  additionalEndpoints: []
+  # - port: metrics
+  #   path: /metrics
+  #   interval: 10s
+  #   scrapeTimeout: 10s
+  #   scheme: ""
+  #   tlsConfig: {}
+  #   # metric relabel configs to apply to samples before ingestion.
+  #   #
+  #   metricRelabelings:
+  #     - sourceLabels: [__meta_kubernetes_service_label_cluster]
+  #       targetLabel: cluster
+  #       regex: (.*)
+  #       replacement: ${1}
+  #       action: replace
+  #   # relabel configs to apply to samples after ingestion.
+  #   #
+  #   relabelings:
+  #     - sourceLabels: [__meta_kubernetes_pod_node_name]
+  #       separator: ;
+  #       regex: ^(.*)$
+  #       targetLabel: nodename
+  #       replacement: $1
+  #       action: replace
+
+prometheusRule:
+  enabled: false
+#   namespace: ""
+#   additionalLabels: {}
+#   rules:
+#   - alert: NoOutputBytesProcessed
+#     expr: rate(fluentbit_output_proc_bytes_total[5m]) == 0
+#     annotations:
+#       message: |
+#         Fluent Bit instance {{ $labels.instance }}'s output plugin {{ $labels.name }} has not processed any
+#         bytes for at least 15 minutes.
+#       summary: No Output Bytes Processed
+#     for: 15m
+#     labels:
+#       severity: critical
+
+dashboards:
+  enabled: false
+  labelKey: grafana_dashboard
+  labelValue: 1
+  annotations: {}
+  namespace: ""
+  deterministicUid: false
+
+lifecycle: {}
+#   preStop:
+#     exec:
+#       command: ["/bin/sh", "-c", "sleep 20"]
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+
+readinessProbe:
+  httpGet:
+    path: /api/v1/health
+    port: http
+
+resources: {}
+#   limits:
+#     cpu: 100m
+#     memory: 128Mi
+#   requests:
+#     cpu: 100m
+#     memory: 128Mi
+
+## only available if kind is Deployment
+ingress:
+  enabled: false
+  ingressClassName: ""
+  annotations: {}
+  #  kubernetes.io/ingress.class: nginx
+  #  kubernetes.io/tls-acme: "true"
+  hosts: []
+  # - host: fluent-bit.example.tld
+  extraHosts: []
+  # - host: fluent-bit-extra.example.tld
+  ## specify extraPort number
+  #   port: 5170
+  tls: []
+  #  - secretName: fluent-bit-example-tld
+  #    hosts:
+  #      - fluent-bit.example.tld
+
+## only available if kind is Deployment
+autoscaling:
+  vpa:
+    enabled: false
+
+    annotations: {}
+
+    # List of resources that the vertical pod autoscaler can control. Defaults to cpu and memory
+    controlledResources: []
+
+    # Values that the vertical pod autoscaler can control. Allowed values are RequestsAndLimits and RequestsOnly. Default is RequestsAndLimits.
+    controlledValues:
+
+    # Define the max allowed resources for the pod
+    maxAllowed: {}
+    # cpu: 200m
+    # memory: 100Mi
+    # Define the min allowed resources for the pod
+    minAllowed: {}
+    # cpu: 200m
+    # memory: 100Mi
+
+    updatePolicy:
+      # Specifies whether recommended updates are applied when a Pod is started and whether recommended updates
+      # are applied during the life of a Pod. Possible values are "Off", "Initial", "Recreate", and "Auto".
+      updateMode: Auto
+
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 75
+  #  targetMemoryUtilizationPercentage: 75
+  ## see https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/#autoscaling-on-multiple-metrics-and-custom-metrics
+  customRules: []
+  #     - type: Pods
+  #       pods:
+  #         metric:
+  #           name: packets-per-second
+  #         target:
+  #           type: AverageValue
+  #           averageValue: 1k
+  ## see https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-configurable-scaling-behavior
+  behavior: {}
+#      scaleDown:
+#        policies:
+#          - type: Pods
+#            value: 4
+#            periodSeconds: 60
+#          - type: Percent
+#            value: 10
+#            periodSeconds: 60
+
+## only available if kind is Deployment
+podDisruptionBudget:
+  enabled: false
+  annotations: {}
+  maxUnavailable: "30%"
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+labels: {}
+
+annotations: {}
+
+podAnnotations: {}
+
+podLabels: {}
+
+## How long (in seconds) a pods needs to be stable before progressing the deployment
+##
+minReadySeconds:
+
+## How long (in seconds) a pod may take to exit (useful with lifecycle hooks to ensure lb deregistration is done)
+##
+terminationGracePeriodSeconds:
+
+priorityClassName: ""
+
+env: []
+#  - name: FOO
+#    value: "bar"
+
+# The envWithTpl array below has the same usage as "env", but is using the tpl function to support templatable string.
+# This can be useful when you want to pass dynamic values to the Chart using the helm argument "--set <variable>=<value>"
+# https://helm.sh/docs/howto/charts_tips_and_tricks/#using-the-tpl-function
+envWithTpl: []
+#  - name: FOO_2
+#    value: "{{ .Values.foo2 }}"
+#
+# foo2: bar2
+
+envFrom: []
+
+# This supports either a structured array or a templatable string
+extraContainers: []
+
+# Array mode
+# extraContainers:
+#   - name: do-something
+#     image: busybox
+#     command: ['do', 'something']
+
+# String mode
+# extraContainers: |-
+#   - name: do-something
+#     image: bitnami/kubectl:{{ .Capabilities.KubeVersion.Major }}.{{ .Capabilities.KubeVersion.Minor }}
+#     command: ['kubectl', 'version']
+
+flush: 1
+
+metricsPort: 2020
+
+extraPorts: []
+#   - port: 5170
+#     containerPort: 5170
+#     protocol: TCP
+#     name: tcp
+#     nodePort: 30517
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+updateStrategy: {}
+#   type: RollingUpdate
+#   rollingUpdate:
+#     maxUnavailable: 1
+
+# Make use of a pre-defined configmap instead of the one templated here
+existingConfigMap: ""
+
+networkPolicy:
+  enabled: false
+#   ingress:
+#     from: []
+
+# See Lua script configuration example in README.md
+luaScripts: 
+  lua_script.lua: |
+    function clean_record(tag, timestamp, record)
+      if record["kubernetes"] ~= nil and record["kubernetes"]["labels"] ~= nil then
+        record["kubernetes"]["labels"] = nil
+      end
+
+      if type(record["json_log"]) ~= "table" then
+        record["json_log"] = nil
+      end
+
+      if record["log"] ~= nil then
+        record["log"] = nil
+      end 
+
+      if record["_p"] ~= nil then
+        record["_p"] = nil
+      end
+      
+      return 1, timestamp, record
+    end
+
+    function remap_json_log (tag, timestamp, record)
+      local temp
+      local json_log = record["json_log"]        
+      if json_log ~= nil and type(json_log) == "table" then
+
+        if json_log["Header"] ~= nil  then 
+          if json_log["Header"]["creationDateTime"] ~= nil then
+            record["@timestamp"] = json_log["Header"]["creationDateTime"]
+          end 
+          if json_log["Header"]["from"] ~= nil then
+            record["from"] = json_log["Header"]["from"]
+          end 
+          if json_log["Header"]["to"] ~= nil then
+            record["to"] = json_log["Header"]["to"]
+          end 
+          if json_log["Header"]["trackingId"] ~= nil then
+            record["trace"] = {}
+            record["trace"]["id"] = json_log["Header"]["trackingId"]
+          end 
+          
+        end 
+
+        if json_log["logLevel"] ~= nil  then 
+          record["log"] = {}
+          record["log"]["level"] = json_log["logLevel"]
+        end
+
+          if json_log["environment"] ~= nil  then 
+            if record["service"] == nil then 
+              record["service"] = {}
+            end 
+            record["service"]["environment"] = json_log["environment"]
+          end
+
+          if json_log["appName"] ~= nil  then 
+            if record["service"] == nil then 
+              record["service"] = {}
+            end 
+            record["service"]["name"] = json_log["appName"]
+          end
+
+          if json_log["appType"] ~= nil  then 
+            if record["service"] == nil then 
+              record["service"] = {}
+            end 
+            record["service"]["type"] = json_log["appType"]
+          end
+
+          if json_log["eventType"] ~= nil  then 
+            if record["event"] == nil then 
+              record["event"] = {}
+            end 
+            record["event"]["type"] = json_log["eventType"]
+          end
+
+          if json_log["messageId"] ~= nil  then 
+            if record["event"] == nil then 
+              record["event"] = {}
+            end 
+            record["event"]["code"] = json_log["messageId"]
+          end
+
+          if json_log["operation"] ~= nil  then 
+            if record["event"] == nil then 
+              record["event"] = {}
+            end 
+            record["event"]["action"] = json_log["operation"]
+          end
+
+
+        if json_log["payload"] ~= nil  then 
+          record["payload"] = json_log["payload"]
+        end 
+
+        if json_log["logMsg"] ~= nil  then 
+          temp = record["message"]
+          if record["log"] == nil then 
+              record["log"] = {}
+          end
+          record["log"]["message.original"] = temp
+          record["message"] = json_log["logMsg"]
+        end
+
+        if json_log["statusCode"] ~= nil  then 
+          record["process"] = {}
+          record["process"]["exit_code"] = json_log["statusCode"]
+        end
+
+        if json_log["thread"] ~= nil  then 
+          if record["process"] == nil then 
+              record["process"] = {}
+          end
+          if record["process"]["thread"] == nil then 
+              record["process"]["thread"] = {}
+          end  
+          record["process"]["thread"]["name"] = json_log["thread"]
+        end
+
+        if json_log["logger"] ~= nil  then 
+          if record["log"] == nil then 
+              record["log"] = {}
+          end
+          record["log"]["logger"] = json_log["logger"]
+        end
+
+        if json_log["processname"] ~= nil  then 
+          if record["process"] == nil then 
+              record["process"] = {}
+          end
+          record["process"]["name"] = json_log["processname"]
+          record["process"] = nil
+        end
+
+        if record["@timestamp"] == nil then
+          record["@timestamp"] = record["time"]
+        end 
+        
+        record["json_log"] = nil
+      end
+ 
+      return 1, timestamp, record
+    end 
+
+## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/configuration-file
+config:
+  service: |
+    [SERVICE]
+        Daemon Off
+        Flush {{ .Values.flush }}
+        Log_Level {{ .Values.logLevel }}
+        Parsers_File /fluent-bit/etc/parsers.conf
+        Parsers_File /fluent-bit/etc/conf/custom_parsers.conf
+        HTTP_Server On
+        HTTP_Listen 0.0.0.0
+        HTTP_Port {{ .Values.metricsPort }}
+        Health_Check On
+
+  inputs: |
+    [INPUT]
+        Name                tail
+        Path                /var/log/containers/*.log
+        Tag                 kube.<namespace_name>.<pod_name>.<container_name>.<container_id>
+        tag_regex           (?<pod_name>[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)_(?<namespace_name>[^_]+)_(?<container_name>.+)-(?<container_id>[a-z0-9]{64})\.log$
+        multiline.parser    docker,cri
+        DB                  /var/log/flb_kube.db
+        Refresh_Interval    5
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+
+  filters: |
+    [FILTER]
+        Name                  kubernetes
+        Match                 kube.*
+        Kube_Tag_Prefix       kube.
+        Regex_Parser          custom-tag
+        Kube_URL              https://kubernetes.default.svc:443
+        Merge_Log             On
+        Annotations           Off
+        Labels                On
+
+    [FILTER]
+        Name              rewrite_tag
+        Match_regex       ^kube\.[^.]+\.[^.]+\.(flogoapp|bwapp)\..*$
+        Rule              $kubernetes['labels']['app'] ^(.*)$ $1.$TAG false
+        Emitter_Name      re_emitted
+
+    [FILTER]
+        name                  multiline
+        Match                 *.*.*.*.bwapp.*
+        multiline.key_content log
+        multiline.parser      multiline-regex
+
+    [FILTER]
+        Name              parser
+        Match             flogo-app.*
+        Key_Name          log
+        Parser            formattedlog_flogo
+        Parser            unformattedlog
+        Reserve_Data      On
+        Preserve_Key      On
+
+    [FILTER]
+        Name              parser
+        Match             bwce-app.*
+        Key_Name          log
+        Parser            formattedlog_bwce
+        Parser            unformattedlog
+        Reserve_Data      On
+        Preserve_Key      On
+    
+    [FILTER]
+        Name              parser
+        Match             bw5ce-app.*
+        Key_Name          log
+        Parser            formattedlog_bw5ce
+        Parser            basejava_log
+        Parser            unformattedlog
+        Reserve_Data      On
+        Preserve_Key      On
+
+    [FILTER]
+        Name              parser
+        Match_regex       ^(flogo-app|bwce-app|bw5ce-app)\..*$
+        Key_Name          message
+        Parser            json_decode
+        Reserve_Data      On
+        Preserve_Key      On  
+    
+    [FILTER]
+        Name              lua
+        Match_regex       ^(flogo-app|bwce-app|bw5ce-app)\..*$
+        script            /fluent-bit/scripts/lua_script.lua
+        call              clean_record
+
+    [FILTER]
+        Name              lua
+        Match_regex       ^(flogo-app|bwce-app|bw5ce-app)\..*$
+        script            /fluent-bit/scripts/lua_script.lua
+        call              remap_json_log
+
+  outputs: |
+    # [OUTPUT]
+    #     Name          stdout
+    #     Match_regex   ^(flogo-app|bwce-app|bw5ce-app)\..*$
+    #     #Match        kube.*
+    #     Format        json_lines
+
+    [OUTPUT]
+        Name          http
+        Match_regex   ^(flogo-app|bwce-app|bw5ce-app)\..*$
+        Host          logstash-logstash.logging.svc.cluster.local
+        Port          8080
+        Format        json
+
+  ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/upstream-servers
+  ## This configuration is deprecated, please use `extraFiles` instead.
+  upstream: {}
+
+  customParsers: |
+    [MULTILINE_PARSER]
+        name          multiline-regex
+        type          regex
+        key_content   log
+        flush_timeout 1000
+        # start of log line with timestamp + level
+        rule          "start_state"   "/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2},\d{3}\s+(INFO|WARN|DEBUG|ERROR|FATAL)/" "cont"
+        rule          "cont"          "/^(?!\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2},\d{3}\s+(INFO|WARN|DEBUG|ERROR|FATAL))/"   "cont"
+        
+    [PARSER]
+        Name        formattedlog_flogo
+        Format      regex
+        Regex       /(?<time>.+)\t(?<level>INFO|DEBUG|TRACE|ERROR)\t(?:\[(?<logger>.+)\]) -\t(?<message>.*)/m
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+
+    [PARSER]
+        Name        formattedlog_bwce
+        Format      regex
+        Regex       /^(?<time>[^ ]*)\s(?<level>INFO|WARN|DEBUG|ERROR|FATAL)\s+(?:\[(?<thread>.*)\])\s(?<logger>.*)\s-\s(?<message>.*)/m
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S,%L
+        Time_Keep   On
+
+    [PARSER]
+        Name        formattedlog_bw5ce
+        Format      regex
+        Regex       /^(?<time>[^ ]*)\s(?<level>INFO|WARN|DEBUG|ERROR|FATAL)\s(?:\[(?<thread>.*)\])\s-\sJob-\d+\s(?:\[(?<processname>.*)\]):(?<message>.*)/m
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S,%L
+        Time_Keep   On
+
+    [PARSER]
+        Name        basejava_log
+        Format      regex
+        Regex       /^(?<time>[^ ]*)\s(?<level>INFO|WARN|DEBUG|ERROR|FATAL)\s(?<message>.*)/m
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S,%L
+        Time_Keep   On
+
+    [PARSER]
+        Name        unformattedlog
+        Format      regex
+        Regex       /^(?<message>.*)/m
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+
+    [PARSER]
+        Name              json_decode
+        Format            regex
+        Regex             /(?<json_log>\{.*\})/m
+        Time_Key          time
+        Time_Format       %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep         On
+        Decode_Field_As   json json_log
+
+    [PARSER]
+        Name    custom-tag
+        Format  regex
+        Regex   ^(?<namespace_name>[^_]+)\.(?<pod_name>[a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)\.(?<container_name>.+)\.(?<container_id>[a-z0-9]{64})
+
+
+  # This allows adding more files with arbitrary filenames to /fluent-bit/etc/conf by providing key/value pairs.
+  # The key becomes the filename, the value becomes the file content.
+  extraFiles: {}
+#     upstream.conf: |
+#       [UPSTREAM]
+#           upstream1
+#
+#       [NODE]
+#           name       node-1
+#           host       127.0.0.1
+#           port       43000
+#     example.conf: |
+#       [OUTPUT]
+#           Name example
+#           Match foo.*
+#           Host bar
+
+# The config volume is mounted by default, either to the existingConfigMap value, or the default of "fluent-bit.fullname"
+volumeMounts:
+  - name: config
+    mountPath: /fluent-bit/etc/conf
+
+daemonSetVolumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+  - name: varlibdockercontainers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: etcmachineid
+    hostPath:
+      path: /etc/machine-id
+      type: File
+
+daemonSetVolumeMounts:
+  - name: varlog
+    mountPath: /var/log
+  - name: varlibdockercontainers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: etcmachineid
+    mountPath: /etc/machine-id
+    readOnly: true
+
+command:
+  - /fluent-bit/bin/fluent-bit
+
+args:
+  - --workdir=/fluent-bit/etc
+  - --config=/fluent-bit/etc/conf/fluent-bit.conf
+
+# This supports either a structured array or a templatable string
+initContainers: []
+
+# Array mode
+# initContainers:
+#   - name: do-something
+#     image: bitnami/kubectl:1.22
+#     command: ['kubectl', 'version']
+
+# String mode
+# initContainers: |-
+#   - name: do-something
+#     image: bitnami/kubectl:{{ .Capabilities.KubeVersion.Major }}.{{ .Capabilities.KubeVersion.Minor }}
+#     command: ['kubectl', 'version']
+
+logLevel: info
+
+hotReload:
+  enabled: false
+  image:
+    repository: ghcr.io/jimmidyson/configmap-reload
+    tag: v0.15.0
+    digest:
+    pullPolicy: IfNotPresent
+  resources: {}
+  extraWatchVolumes: []
+  securityContext:
+    privileged: false
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    capabilities:
+      drop:
+        - ALL

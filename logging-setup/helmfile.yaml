@@ -1,0 +1,20 @@
+repositories:
+  - name: fluent
+    url: https://fluent.github.io/helm-charts
+  - name: elastic
+    url: https://helm.elastic.co
+
+releases:
+  - name: fluentbit
+    namespace: logging
+    chart: fluent/fluent-bit
+    version: 0.53.0
+    values:
+      - helm-values/fluentbit/values.yaml
+
+  - name: logstash
+    namespace: logging
+    chart: elastic/logstash
+    version: 8.5.1
+    values:
+      - helm-values/logstash/values.yaml
