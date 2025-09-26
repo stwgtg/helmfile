@@ -25,9 +25,19 @@ spec:
               name: cmp-helmfile
             - mountPath: /tmp
               name: cmp-tmp
+          env:
+            - name: HELM_CONFIG_HOME
+              value: /tmp/helm/config
+            - name: HELM_CACHE_HOME
+              value: /tmp/helm/cache
+            - name: HELM_DATA_HOME
+              value: /tmp/helm/data
       volumes:
         - name: cmp-helmfile
           configMap:  
             name: cmp-helmfile
         - emptyDir: {}
           name: cmp-tmp
+
+
+          
